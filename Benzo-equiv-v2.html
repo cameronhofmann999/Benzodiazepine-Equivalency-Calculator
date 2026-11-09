@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benzodiazepine Equivalence Calculator</title>
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f4f7f6;
+        color: #333;
+        padding: 20px;
+        line-height: 1.6;
+    }
+    .calculator-container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+        text-align: center;
+        color: #2c3e50;
+        margin-top: 0;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #34495e;
+    }
+    input, select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 16px;
+        background-color: #fdfdfd;
+    }
+    input:focus, select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    }
+    button {
+        width: 100%;
+        padding: 14px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+        margin-top: 10px;
+    }
+    button:hover {
+        background-color: #2980b9;
+    }
+    .result-box {
+        margin-top: 25px;
+        padding: 20px;
+        background-color: #e8f4f8;
+        border-left: 5px solid #3498db;
+        border-radius: 4px;
+        display: none;
+    }
+    .result-box h3 {
+        margin: 0 0 10px 0;
+        color: #2c3e50;
+        font-size: 16px;
+    }
+    .result-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2980b9;
+        margin-bottom: 10px;
+    }
+    .note {
+        font-size: 13px;
+        color: #7f8c8d;
+        margin: 0;
+    }
+    .warning {
+        background-color: #fdf3f2;
+        border-left-color: #e74c3c;
+    }
+    .warning .result-value {
+        color: #e74c3c;
+    }
+</style>
+</head>
+<body>
+
+<div class="calculator-container">
+    <h2>Benzodiazepine Calculator</h2>
+    
+    <div class="form-group">
+        <label for="dose">Current Dose (mg)</label>
+        <input type="number" id="dose" placeholder="Enter dose in mg" step="any" min="0">
+    </div>
+
+    <div class="form-group">
+        <label for="drugFrom">Convert From</label>
+        <select id="drugFrom"></select>
+    </div>
+
+    <div class="form-group">
+        <label for="drugTo">Convert To</label>
+        <select id="drugTo"></select>
+    </div>
+
+    <button onclick="calculateEquivalence()">Calculate Equivalency</button>
+
+    <div id="resultBox" class="result-box">
+        <h3>Equivalent Dose</h3>
+        <div id="resultValue" class="result-value"></div>
+        <p id="calcNote" class="note"></p>
+    </div>
+</div>
+
+<script>
+    // Equivalence factors mapped directly to 10 mg of Diazepam
+    const benzoData = {
+        "Alprazolam": { eq: 1.5, display: "1.5 mg" },
+        "Bromazepam": { eq: 6, display: "6 mg" },
+        "Camazepam": { eq: 15, display: "10-20 mg (Mean: 15 mg)" },
+        "Chlordiazepoxide": { eq: 20, display: "20 mg" },
+        "Cinolazepam": { eq: 40, display: "40 mg" },
+        "Clobazam": { eq: 20, display: "20 mg" },
+        "Clonazepam": { eq: 2, display: "2 mg" },
+        "Clonazolam (Designer)": { eq: 0.25, display: "0.25 mg" },
+        "Clorazepate": { eq: 20, display: "20 mg" },
+        "Cloxazolam": { eq: 4, display: "4 mg" },
+        "Delorazepam": { eq: 1, display: "1 mg" },
+        "Diazepam": { eq: 10, display: "10 mg" },
+        "Diclazepam (Designer)": { eq: 1, display: "1 mg" },
+        "Estazolam": { eq: 1.5, display: "1-2 mg (Mean: 1.5 mg)" },
+        "Flualprazolam (Designer)": { eq: 0.25, display: "0.25 mg" },
+        "Flubromazepam (Designer)": { eq: 4, display: "4 mg" },
+        "Flubromazolam (Designer)": { eq: 0.25, display: "0.25 mg" },
+        "Fludiazepam": { eq: 1, display: "1 mg" },
+        "Flunitrazepam": { eq: 0.75, display: "0.75 mg" },
+        "Flunitrazolam (Designer)": { eq: 0.1, display: "0.1 mg (100 µg)" },
+        "Flurazepam": { eq: 30, display: "30 mg" },
+        "Flutazolam": { eq: 30, display: "30 mg" },
+        "Flutoprazepam": { eq: 3.5, display: "3-4 mg (Mean: 3.5 mg)" },
+        "Halazepam": { eq: 20, display: "20 mg" },
+        "Ketazolam": { eq: 17.5, display: "15-20 mg (Mean: 17.5 mg)" },
+        "Loprazolam": { eq: 1.25, display: "1-1.5 mg (Mean: 1.25 mg)" },
+        "Lorazepam": { eq: 2, display: "2 mg" },
+        "Lormetazepam": { eq: 1.5, display: "1.5 mg" },
+        "Meclonazepam (Designer)": { eq: 1, display: "1 mg" },
+        "Medazepam": { eq: 20, display: "20 mg" },
+        "Metaclazepam": { eq: 10, display: "10 mg" },
+        "Mexazolam": { eq: 10, display: "10 mg" },
+        "Midazolam (Oral)": { eq: 7.5, display: "7.5 mg (Oral)" },
+        "Nimetazepam": { eq: 5, display: "5 mg" },
+        "Nitrazepam": { eq: 5, display: "5 mg" },
+        "Nordazepam": { eq: 20, display: "20 mg" },
+        "Oxazepam": { eq: 30, display: "30 mg" },
+        "Oxazolam": { eq: 40, display: "40 mg" },
+        "Phenazepam": { eq: 1, display: "1 mg" },
+        "Phenazolam (Designer)": { eq: 0.25, display: "0.25 mg" },
+        "Pinazepam": { eq: 20, display: "20 mg" },
+        "Prazepam": { eq: 20, display: "20 mg" },
+        "Pyrazolam (Designer)": { eq: 1, display: "1 mg" },
+        "Quazepam": { eq: 20, display: "20 mg" },
+        "Temazepam": { eq: 20, display: "20 mg" },
+        "Tetrazepam": { eq: 50, display: "50 mg" },
+        "Triazolam": { eq: 0.5, display: "0.5 mg" }
+    };
+
+    const drugSelectFrom = document.getElementById('drugFrom');
+    const drugSelectTo = document.getElementById('drugTo');
+    
+    Object.keys(benzoData).sort().forEach(drug => {
+        let optionFrom = document.createElement('option');
+        optionFrom.value = drug;
+        optionFrom.text = drug;
+        drugSelectFrom.appendChild(optionFrom);
+
+        let optionTo = document.createElement('option');
+        optionTo.value = drug;
+        optionTo.text = drug;
+        drugSelectTo.appendChild(optionTo);
+    });
+
+    drugSelectFrom.value = "Alprazolam";
+    drugSelectTo.value = "Diazepam";
+
+    function calculateEquivalence() {
+        const doseInput = document.getElementById('dose').value;
+        const fromDrug = document.getElementById('drugFrom').value;
+        const toDrug = document.getElementById('drugTo').value;
+        const resultBox = document.getElementById('resultBox');
+        const resultValue = document.getElementById('resultValue');
+        const calcNote = document.getElementById('calcNote');
+
+        if (!doseInput || doseInput <= 0) {
+            alert("Please enter a valid dose greater than 0.");
+            return;
+        }
+
+        const fromEq = benzoData[fromDrug].eq;
+        const toEq = benzoData[toDrug].eq;
+        
+        // Reset warnings
+        resultBox.classList.remove('warning');
+
+        // Logic: (Input Dose / Source Eq Factor) * Target Eq Factor
+        const equivalentDose = (doseInput / fromEq) * toEq;
+        
+        // Ensure microgram-level accuracy for ultra-potent designers
+        const formattedDose = parseFloat(equivalentDose.toFixed(4));
+
+        resultValue.innerHTML = `${formattedDose} mg <span style="font-size:18px; color:#34495e;">of ${toDrug}</span>`;
+        
+        calcNote.innerHTML = `<strong>Base equivalents to 10mg Diazepam:</strong><br>
+                              ${fromDrug}: ${benzoData[fromDrug].display}<br>
+                              ${toDrug}: ${benzoData[toDrug].display}`;
+        
+        resultBox.style.display = 'block';
+    }
+</script>
+</body>
+</html>
